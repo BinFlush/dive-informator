@@ -20,10 +20,9 @@ vid=dykraw.mp4
 output_file=dyk.mp4
 head=headings
 heading_video=prores.mov
-#offset=1 		#video offset "nær dykk byrjar" í sek (negativt virdi um dykk byrjar ádrenn video...)
-#progbarlength=4 	# hvussu langt dykk er (í sekund) (tvs longd av video minus hvussu langt áðrenn videoend dykk steðgar) (plussa um kamera sløknar mitt í dykk) (minus offset >ja! tvs plussa um offset er negativt<)
-resize=20 		#hvussu stór png skal vera í prosent av orig
-kumpoffset=0		# hvussu langt kumpass skal offsettast í sekund "typiskt negativt virði"
+resize=20 		# size of png in percentage of original
+kumpoffset=0		# how many seconds compass should be offset. Typically negative value, if AHRS started before video (edited in script)
+
 ################### First we need to concatinate all the seperate videofiles into one video
 
 
@@ -52,7 +51,7 @@ sed -i 's/.$//' tmpconcatskript #delete trailing line
 echo -n "\" -c copy -bsf:a aac_adtstoasc $vid" >> tmpconcatskript
 . tmpconcatskript
 rm tmpconcatskript
-rm "intermediate*.ts"
+rm intermediate*.ts
 echo
 echo "$vid has been created."
 }
@@ -520,10 +519,6 @@ echo
 read -n 1 -s -r -p "Press any key to continue"
 echo
 
-
-echo
-echo "Files needed: $vid, $png, $sub"
-echo "If compassheadings are to be used: $head $heading_video (or $compdir or just $comp) AND $numvideo (or $numdir or simply $numsvg  ?"
 echo "Would you like to include a compass to this video? "y/n""
 while true
 do
