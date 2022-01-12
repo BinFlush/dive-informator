@@ -25,12 +25,17 @@ heading_video=prores.mov
 resize=20 		#hvussu stór png skal vera í prosent av orig
 kumpoffset=0		# hvussu langt kumpass skal offsettast í sekund "typiskt negativt virði"
 ################### First we need to concatinate all the seperate videofiles into one video
+
+
+
+
+function concatinator {
 echo "Put all videofiles in this directory, named 1.MP4, 2.MP4 4.MP4 etc..."
 echo
 read -n 1 -s -r -p "Press any key to continue"
 echo
 if [ ! -f *.MP4 ]; then
-    echo ".MP4 not found"
+    echo "1.MP4 not found"
     exit 1
 fi
 origv=$(ls -1q *.MP4 | wc -l)
@@ -48,29 +53,14 @@ echo -n "\" -c copy -bsf:a aac_adtstoasc $vid" >> tmpconcatskript
 . tmpconcatskript
 rm tmpconcatskript
 rm "intermediate*.ts"
-
-echo
-echo
 echo
 echo "$vid has been created."
-echo
-echo "Now use this video to generate diveprofile (save as $png)"
-echo
-echo "Also use Subsurface to export dive info as subtitles file (save as $sub)"
-echo
-echo "If you need compass bearings, you will need the headings file too (save as $head)"
-echo
-echo "Put this script away until ready, and come back when all files are present in this folder"
-echo
-echo
-read -n 1 -s -r -p "Press any key to continue"
-echo
-echo
-echo "are you double shure?"
-echo
-echo
-read -n 1 -s -r -p "Press any key to continue"
-echo
+}
+
+
+
+
+
 
 
 #################### HERE BE FUNCTIONS ###################
@@ -211,23 +201,27 @@ function checkcurves {
     fi
 }
 
+function getprogbarlength {
+    head_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | head -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
+    tail_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | tail -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
+    progbarlength=$(($tail_seconds-$head_seconds))
+}
 
-
-
-
+function offsetsubs {
+    beg_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | head -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
+    ffmpeg -itsoffset -$beg_seconds -i $sub -c copy tmp.ass && mv tmp.ass $sub
+    echo "1. Subs are zeroed:"
+    ffmpeg -itsoffset $offset -i $sub -c copy tmp.ass && mv tmp.ass $sub
+}
 
 
 function checksubs {
-    echo "OK LAST CHECK UM SUBTITLES ER OK"
+    echo "Now check if data is aligned with video"
     sleep 4
-    beg_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | head -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' |
-awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
-    ffmpeg -itsoffset -$beg_seconds -i $sub -c copy tmp.ass && mv tmp.ass $sub
-    echo "1. Subs are zeroed:"
-    sleep 1
-    # Lets get the length of the dive in seconds
-    progbarlength=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | tail -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
-    ffmpeg -itsoffset $offset -i $sub -c copy tmp.ass && mv tmp.ass $sub
+
+    zerosubs_getlen
+
+
     echo "2. Subs are offset $offset seconds"
     sleep 1
     while true
@@ -420,26 +414,137 @@ function buildnumvideo {
 
 
 
+function checkinputfiles {
+    while true
+    do
+        missing=0
+        missingfiles=""
+        if [ ! -e $vid ]; then
+            missingfiles+=\ $vid
+            missing=1
+        fi
+
+        if [ ! -e $png ]; then
+            missingfiles+=\ $png
+            missing=1
+        fi
+
+        if [ ! -e $sub ]; then
+            missingfiles+=\ $sub
+            missing=1
+        fi
+
+        if [ $compassellaikki = "y" ]; then
+            if [ ! -e $sub ]; then
+                missingfiles+=\ $sub
+                missing=1
+            fi
+        fi
+
+        if [ $missing = 1 ]; then
+            echo
+	    echo "Files missing!:"
+	    echo "$missingfiles"
+	    read -n 1 -s -r -p "Add files and press any key to continue!"
+        else
+            break
+        fi
+    done
+}
+
+
+function checkoffset {
+    offset=0
+    while true
+    do
+        offsetsubs
+	echo
+	echo
+        echo "Offset is currently $offset."
+        echo "How many seconds should it be moved (when does dive start) valid input is 5 or -5"
+        echo "press w to watch video (with subtitles)"
+        echo "Enter to confirm"
+        echo "q to quit"
+        echo
+        read answer
+        if [ "$answer" = "q" ]; then
+            exit 1
+        elif [ "$answer" = "w" ]; then
+            ffplay -vf subtitles=filename="$sub" "$vid"
+        elif [ -z "$answer" ]; then
+            break
+        else
+            offset=$(($offset+$answer))
+            echo
+        fi
+    done
+}
+
+
 
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
+if [ -f $vid ]; then
+    echo "$vid exists. Use it? y/n"
+    while true
+    do	
+        echo
+        read ans
+        echo
+        if [ $ans = y ]; then
+	    break
+	elif [ $ans = n ]; then
+	    echo "Generating new!"
+	    echo
+	    concatinator
+	    break
+	else
+	    echo "Invalid input!"
+	fi
+    done
+else
+    concatinator
+fi
+echo "Now use this video to generate diveprofile (save as $png)"
+echo "Also use Subsurface to export dive info as subtitles file (save as $sub)"
+echo "If you need compass bearings, you will need the headings file too (save as $head)"
+echo "Put this script away until ready, and come back when all files are present in this folder"
+echo
+read -n 1 -s -r -p "Press any key to continue"
+echo
+echo "are you double shure?"
+echo
+read -n 1 -s -r -p "Press any key to continue"
+echo
 
 
-echo "How many seconds in the video till dive starts? (negative if dive starts before video)"
-read offset
 echo
 echo "Files needed: $vid, $png, $sub"
 echo "If compassheadings are to be used: $head $heading_video (or $compdir or just $comp) AND $numvideo (or $numdir or simply $numsvg  ?"
-echo
-read mappa
-cd "$mappa"
-echo "going to $mappa"
-echo
-echo "skal hetta video inkludera compass "y/n""
-read compassellaikki
+echo "Would you like to include a compass to this video? "y/n""
+while true
+do
+    read compassellaikki
+    if [ $compassellaikki != "y" ]; then
+	if [ $compassellaikki != "n" ]; then
+	    echo
+	    echo "Invalid input"
+	else
+	    break
+	fi
+    else
+	break
+    fi
+done
+checkinputfiles
+getprogbarlength
+checkoffset
+
+
+
 if [ $compassellaikki = "y" ]; then
     echo "Brúkar compass"
         if [ -d "$compdir" ]; then
@@ -529,14 +634,12 @@ if [ $compassellaikki = "y" ]; then
     files_existvidkump
     checkcurves
     checkcomp
-    checksubs
     convertpng
     countdown
     vidkump
 else
     files_existuttankump
     checkcurves
-    checksubs
     convertpng
     countdown
     uttankump
