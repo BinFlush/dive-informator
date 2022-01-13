@@ -114,8 +114,6 @@ function files_existvidkump {
         echo "$numvideo not found"
         exit 1
     fi
-    echo "ALL FILES EXIST. WISH ME LUCK!!"
-    sleep 2
 }
 
 
@@ -547,10 +545,10 @@ if [ $compassellaikki = "y" ]; then
     echo "Using compass"
         if [ -d "$compdir" ]; then
 	    if [ $(ls $compdir/ | wc -l) -ge 360 ]; then
-		echo "compassfílir eru har longu. Brúka tær "b" ella gera nýggjar "n"?"
+		echo "Source png files for compass crown already present. Use or New (u/n)?"
 		read neworold
-		if [ $neworold = b ]; then
-		    echo "brúkar gamlar"
+		if [ $neworold = u ]; then
+		    echo "using old"
 		elif [ $neworold = n ]; then
 		    build360
 		else
@@ -568,9 +566,9 @@ if [ $compassellaikki = "y" ]; then
 	fi
 
     if [ -f "$heading_video" ]; then
-	echo "$heading_video finnist longu brúka ella nýgga? (b/n)"
+	echo "$heading_video already exists. Use er New? (u/n)"
 	read newold
-	if [ $newold = b ]; then
+	if [ $newold = u ]; then
 	    echo "using old"
 	elif [ $newold = n ]; then
 	    buildkumpvideo
@@ -587,10 +585,10 @@ if [ $compassellaikki = "y" ]; then
 
         if [ -d "$numdir" ]; then
 	    if [ $(ls $numdir/ | wc -l) -ge 360 ]; then
-		echo "numeralfílir eru har longu. Brúka tær "b" ella gera nýggjar "n"?"
+		echo "Source numeral png files already exist. Use or New? (u/n)"
 		read neworold
-		if [ $neworold = b ]; then
-		    echo "brúkar gamlar"
+		if [ $neworold = u ]; then
+		    echo "using old"
 		elif [ $neworold = n ]; then
 		    build360numerals
 		else
@@ -608,9 +606,9 @@ if [ $compassellaikki = "y" ]; then
 	fi
 
     if [ -f "$numvideo" ]; then
-	echo "$numvideo finnist longu brúka ella nýgga? (b/n)"
+	echo "$numvideo already exists. Use or New? (u/n)"
 	read newold
-	if [ $newold = b ]; then
+	if [ $newold = u ]; then
 	    echo "using old"
 	elif [ $newold = n ]; then
 	    buildnumvideo
