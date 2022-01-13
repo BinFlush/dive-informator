@@ -4,8 +4,7 @@
 # 1. Put the partial videos into original-clips/ and start this script.
 # 2. IMPORT RESULTING VIDEO INTO SUBSURFACE (YOU MIGHT HAVE TO TEMPORARILY ADJUST DIVETIME IN SUBSURFACE TO MATCH) AND EXPORT PNG + .ass FILE (as dykraw.ass)
 # 3. OPEN PNG IN GIMP, CUT IT TO SIZE (no whitespace before and after dive) AND SET OPACITY TO 40%-50%. SAVE AS profile.png
-# 4. SET ALIGNMENT VALUE TO 1 IN  .ass FILE
-# 5. CHECK THAT SUBTITLES CONTAIN ENTIRE DIVE. TIMING CAN BE ADJUSTED IN SCRIPT.
+# 4. CHECK THAT SUBTITLES CONTAIN ENTIRE DIVE. TIMING CAN BE ADJUSTED IN SCRIPT.
 
 N=4 #processes when multitasking
 numvideo=numerals.mov
@@ -444,6 +443,19 @@ function checkinputfiles {
 
 
 function checkoffset {
+    sed -i '/^Style/s/[^,]*/8/3' $sub
+    echo "Setting subtitles size to 8"
+    if [ $compassellaikki = "y" ]; then
+        sed -i '/^Style/s/[^,]*/1/19' $sub
+	echo "Setting subtitle alignment to lower left"
+	echo
+	sleep 1
+    else
+        sed -i '/^Style/s/[^,]*/2/19' $sub
+	echo "Setting subtitle alignment to lower center"
+	echo
+	sleep 1
+    fi
     offset=0
     while true
     do
