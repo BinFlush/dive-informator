@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # One folder per dive
-# 1. RUN PRESCRIPT
+# 1. Put the partial videos into original-clips/ and start this script.
 # 2. IMPORT RESULTING VIDEO INTO SUBSURFACE (YOU MIGHT HAVE TO TEMPORARILY ADJUST DIVETIME IN SUBSURFACE TO MATCH) AND EXPORT PNG + .ass FILE (as dykraw.ass)
 # 3. OPEN PNG IN GIMP, CUT IT TO SIZE (no whitespace before and after dive) AND SET OPACITY TO 40%-50%. SAVE AS profile.png
 # 4. SET ALIGNMENT VALUE TO 1 IN  .ass FILE
 # 5. CHECK THAT SUBTITLES CONTAIN ENTIRE DIVE. TIMING CAN BE ADJUSTED IN SCRIPT.
-# 5. BRÚKA TÍÐINAR Í SUBTITLES TIL AT JUSTERA TÍÐINAR Í HESUM SKRIPTINUM.
-# 6. EFTIRKANNA ØLL VIRÐIR Í HESUM SKRIPTINUM, OG KOYR Á!!
+
 N=4 #processes when multitasking
 numvideo=numerals.mov
+origdir=original-clips
 numsvg=numerals.svg
 numdir=360numerals
 comp=compass.svg ## Don't change this
@@ -28,23 +28,29 @@ kumpoffset=0		# how many seconds compass should be offset. Typically negative va
 
 
 
+#################### HERE BE FUNCTIONS ###################
 function concatinator {
-echo "Put all videofiles in this directory, named 1.MP4, 2.MP4 4.MP4 etc..."
-echo
-read -n 1 -s -r -p "Press any key to continue"
-echo
-if [ ! -f *.MP4 ]; then
-    echo "1.MP4 not found"
-    exit 1
-fi
-origv=$(ls -1q *.MP4 | wc -l)
-
-echo "vit hava $origv fílir"
+while true
+do
+    
+    echo "Put all videofiles in this directory: $origdir/"
+    echo
+    read -n 1 -s -r -p "Press any key to continue"
+    echo
+    origv=$(ls -1q "$origdir/" | wc -l)
+    if [ $origv = 0 ]; then
+        echo "No videos found"
+    else
+	break
+    fi
+done
+sortedfiles=$(ls $origdir/ -cr --time=birth)
+echo "there are $origv original files"
 
 echo -n "ffmpeg -i \"concat:" >> tmpconcatskript
 
-for i in `seq $origv`; do  
-  ffmpeg -i "$i".MP4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate"$i".ts
+for i in $sortedfiles; do  
+  ffmpeg -i "$origdir/$i" -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate"$i".ts
   echo -n "intermediate$i.ts|" >> tmpconcatskript
 done
 sed -i 's/.$//' tmpconcatskript #delete trailing line
@@ -55,15 +61,6 @@ rm intermediate*.ts
 echo
 echo "$vid has been created."
 }
-
-
-
-
-
-
-
-#################### HERE BE FUNCTIONS ###################
-
 
 
 #######PARRALELLIZATION
@@ -150,7 +147,10 @@ function convertpng {
     videowith=$(ffprobe -v error -hide_banner -select_streams v:0 -show_entries stream=width -of csv="p=0" "$vid")
     profilwith=$(identify -format "%w" tmp.png)
     profilheight=$(identify -format "%h" tmp.png)
-    progbarstick=25 #how much progbar sticks out
+    progbarstick=$(echo $profilheight | sed 's/.$//') #set overhang to roughly a thenth of height, by removing last digit
+    if [ -z $progbarstick ]; then # set overlap to 0, in the weird case that the image heigth is single digits.
+       progbarstick=0
+    fi       
     progw=2 #progressbar with
     progh=$(($progbarstick + $profilheight))
     barslut=$(($offset + $progbarlength))
@@ -195,7 +195,7 @@ function checkcurves {
 	filterstart="[0:v]$rgb[rgbvid:v];"
 	filterinput="[rgbvid:v]"
     elif [ "$colorcorrect" = "n" ]; then
-	filterstart=""
+	filterstart=
 	filterinput="[0:v]"
     fi
 }
@@ -204,6 +204,23 @@ function getprogbarlength {
     head_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | head -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
     tail_seconds=$(grep -n "Dialogue:" $sub | awk -F  ":" '{print $3":"$4":"$5}' | tail -n 1 | sed 's/[0-9],//1' |sed 's/,[0-9]//' | sed 's/\.00//' | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
     progbarlength=$(($tail_seconds-$head_seconds))
+    echo
+    echo "Dive duration is determined to be $progbarlength seconds (from subtitles data)"
+    while true
+    do
+        echo "Press enter to accept, or write new value to manually change"
+        read answer
+        if [ -z $answer ]; then
+	    echo "Dive duration accepted!"
+	    sleep 2
+	    break
+	else
+	    echo
+            echo "New dive duration is $answer seconds (old was $progbarlength)"
+            progbarlength=$answer
+	fi
+    done
+
 }
 
 function offsetsubs {
@@ -213,39 +230,8 @@ function offsetsubs {
     ffmpeg -itsoffset $offset -i $sub -c copy tmp.ass && mv tmp.ass $sub
 }
 
-
-function checksubs {
-    echo "Now check if data is aligned with video"
-    sleep 4
-
-    zerosubs_getlen
-
-
-    echo "2. Subs are offset $offset seconds"
-    sleep 1
-    while true
-    do
-      ffplay -vf subtitles=filename="$sub" "$vid"
-      echo
-      echo "Are subtitles correct?"
-      echo "* enter to proceed"
-      echo "* r to watch again"
-      echo "* q to quit"
-      echo "give number in sek (positive is right) ex. 1 or -3"
-      read ans
-    
-      if [ -z "$ans" ]; then
-        break
-      elif [ "$ans" = "q" ]; then
-        echo "exiting"
-        exit 0
-      else
-          ffmpeg -itsoffset $ans -i $sub -c copy tmp.ass && mv tmp.ass $sub
-      fi
-    done
-}
 function checkcomp {
-    echo "Check um kumpass ER OK"
+    echo "Check if compas is OK and aligned"
     sleep 4
     
     while true
@@ -258,11 +244,11 @@ function checkcomp {
 	  [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
 	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
       echo
-      echo "Er compassið ok?"
+      echo "Does the compass look good?"
       echo "* enter to proceed"
       echo "* r to watch again"
       echo "* q to quit"
-      echo "* skriva 5 ella -5 fyri at flyta 5 til høgru ella vinstru"
+      echo "* enter 5 or -5 to move 5 seconds left or right"
       read ans
     
       if [ -z "$ans" ]; then
@@ -306,7 +292,7 @@ function vidkump {
 	[3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
 	$filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
 	[sammen:v]subtitles="$sub"[sub:v];\
-	[sub:v][1:v] overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
+	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1[manglarnal]\
 	;color=c=white@0.5:s="$progw"x"112"[bartwo];\
 	[manglarnal][bartwo]overlay=main_w/2-2:main_h-$progh+56:shortest=1[manglarnumerals];\
@@ -315,14 +301,19 @@ function vidkump {
 }
 
 
+#	filterstart="[0:v]$rgb[rgbvid:v];"
+#	filterinput="[rgbvid:v]"
+#    elif [ "$colorcorrect" = "n" ]; then
+#	filterstart=
+#	filterinput="[0:v]"
 
 
 
 function uttankump {
     ffmpeg -i "$vid" -i tmp.png -filter_complex \
-	"[0:v]""$rgb""[tmp:v];\
-	[tmp:v]subtitles="$sub"[sub:v];\
-	[sub:v][1:v] overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
+	"$filterstart\
+	$filterinput subtitles="$sub"[sub:v];\
+	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1" \
 	-pix_fmt yuv420p -c:a copy "$output_file"
 }
@@ -541,7 +532,7 @@ checkoffset
 
 
 if [ $compassellaikki = "y" ]; then
-    echo "Brúkar compass"
+    echo "Using compass"
         if [ -d "$compdir" ]; then
 	    if [ $(ls $compdir/ | wc -l) -ge 360 ]; then
 		echo "compassfílir eru har longu. Brúka tær "b" ella gera nýggjar "n"?"
