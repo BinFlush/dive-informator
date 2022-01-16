@@ -383,7 +383,7 @@ function buildkumpvideo {
     cp $head $compdir/$head
     echo "cd-ing to $compdir"
     cd $compdir
-    ffmpeg -f concat -r 23.98 -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+    ffmpeg -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
     mv "$heading_video" ../
     cd ..
 }
@@ -394,7 +394,7 @@ function buildnumvideo {
     cp $head $numdir/$head
     echo "cd-ing to $numdir"
     cd $numdir
-    ffmpeg -f concat -r 23.98 -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
+    ffmpeg -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
     mv "$numvideo" ../
     cd ..
 }
@@ -480,8 +480,15 @@ function checkoffset {
     done
 }
 
-
-
+function translate_log_data {
+    awk -F "\"*,\"*" '{print $8}' data.txt > x
+    awk -F "\"*,\"*" '{print $10}' data.txt > z
+    awk -F "\"*,\"*" '{print $1}' data.txt > time
+    ./script.py
+    framerate=$(cat framerate)
+    echo "framerate calculated to be $framerate fps"
+    rm x z time framerate
+}
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
@@ -543,6 +550,7 @@ checkoffset
 
 if [ $compassellaikki = "y" ]; then
     echo "Using compass"
+    translate_log_data
         if [ -d "$compdir" ]; then
 	    if [ $(ls $compdir/ | wc -l) -ge 360 ]; then
 		echo "Source png files for compass crown already present. Use or New (u/n)?"
