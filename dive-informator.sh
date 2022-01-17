@@ -19,6 +19,7 @@ vid=dykraw.mp4
 output_file=dyk.mp4
 head=headings
 heading_video=prores.mov
+py_data_translator=script.py
 resize=20 		# size of png in percentage of original
 kumpoffset=0		# how many seconds compass should be offset. Typically negative value, if AHRS started before video (edited in script)
 
@@ -100,10 +101,6 @@ function files_existvidkump {
     fi
     if [ ! -f "$png" ]; then
         echo "$png not found"
-        exit 1
-    fi
-    if [ ! -f "$head" ]; then
-        echo "$head not found"
         exit 1
     fi
     if [ ! -f "$heading_video" ]; then
@@ -245,7 +242,7 @@ function checkcomp {
       echo "* enter to proceed"
       echo "* r to watch again"
       echo "* q to quit"
-      echo "* enter 5 or -5 to move 5 seconds left or right"
+      echo "* enter 5 or -5 to move 5 seconds left or right. You can  enter up to three decimals."
       read ans
     
       if [ -z "$ans" ]; then
@@ -254,7 +251,7 @@ function checkcomp {
         echo "exiting"
         exit 0
       else
-	  kumpoffset=$(($ans + $kumpoffset))
+	  kumpoffset=$(echo "$ans $kumpoffset" | awk '{print $1+$2}')
       fi
     done
 }
@@ -346,6 +343,7 @@ function build360 {
         mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/${i}.png
         echo "$i"
     done
+    sha256sum $comp > $compdir/check
 }
 
 function build360numeralscore {
@@ -374,6 +372,8 @@ function build360numerals {
     do
         run_with_lock build360numeralscore
     done
+    sha256sum $numsvg > $numdir/check
+
     sleep 5
 }
 
@@ -383,7 +383,16 @@ function buildkumpvideo {
     cp $head $compdir/$head
     echo "cd-ing to $compdir"
     cd $compdir
-    ffmpeg -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+    while true
+    do
+        ffmpeg -y -f concat -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+        if [ $? = 0 ]; then
+            echo "success!!!!"
+	    break
+        else
+            echo "render failed.. trying again!!"
+        fi
+    done    
     mv "$heading_video" ../
     cd ..
 }
@@ -394,7 +403,16 @@ function buildnumvideo {
     cp $head $numdir/$head
     echo "cd-ing to $numdir"
     cd $numdir
-    ffmpeg -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
+    while true
+    do
+        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
+        if [ $? = 0 ]; then
+	    echo "success!!!!"
+	    break
+        else
+            echo "render failed.. trying again!!"
+        fi
+    done    
     mv "$numvideo" ../
     cd ..
 }
@@ -484,11 +502,102 @@ function translate_log_data {
     awk -F "\"*,\"*" '{print $8}' data.txt > x
     awk -F "\"*,\"*" '{print $10}' data.txt > z
     awk -F "\"*,\"*" '{print $1}' data.txt > time
-    ./script.py
+    ./$py_data_translator
     framerate=$(cat framerate)
     echo "framerate calculated to be $framerate fps"
     rm x z time framerate
 }
+
+
+function compassdialogue {
+    # Remember to declare relevant variables before calling this function
+    # dialoguedir
+    # dialoguesvg
+    # dialoguemov
+    # buildvidcommand
+    # buildpngcommand
+    # crown_or_numerals
+    if [ -f "$dialoguemov" ]; then
+	echo "$dialoguemov already exists."
+	echo "Use it? y/n"
+	read usemov
+	if [ $usemov = y ]; then
+	    buildstatus=0 ## DONE
+	    echo "setting buildstatus for $crown_or_numerals to 0"
+
+
+	    
+        elif [ $usemov = n ];then
+	    if [ ! -d "$dialoguedir" ]; then
+                mkdir $dialoguedir
+		buildstatus=2
+		echo "setting buildstatus for $crown_or_numerals to 2"
+	    else
+	        if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+                    echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
+                    if [ $? = 0 ]; then
+			buildstatus=1
+			echo "setting buildstatus for $crown_or_numerals to 1"
+		    else
+			echo "$crown_or_numerals file has changed"
+			echo "Build new? y/n (might take a while)"
+			read newfiles
+			if [ $newfiles = y ]; then
+			    buildstatus=2
+			    echo "setting buildstatus for $crown_or_numerals to 2"
+			elif [ $newfiles = n ]; then
+			    buildstatus=1
+			    echo "setting buildstatus for $crown_or_numerals to 1"
+			fi
+		    fi
+		else
+		    buildstatus=2
+		    echo "setting buildstatus for $crown_or_numerals to 2"
+	        fi
+	    fi
+	fi
+    else
+        if [ ! -d "$dialoguedir" ]; then
+            mkdir $dialoguedir
+            buildstatus=2
+	    echo "setting buildstatus for $crown_or_numerals to 2"
+	else
+	    if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+                echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
+                if [ $? = 0 ]; then
+		    buildstatus=1
+		    echo "setting buildstatus for $crown_or_numerals to 1"
+		else
+		    echo "$crown_or_numerals file has changed"
+		    echo "Build new? y/n (might take a while)"
+		    read newfiles
+		    if [ $newfiles = y ]; then
+			echo "setting buildstatus for $crown_or_numerals to 2"
+		        buildstatus=2
+		    elif [ $newfiles = n ]; then
+		        buildstatus=1
+			echo "setting buildstatus for $crown_or_numerals to 1"
+		    fi
+		fi
+	    else
+		    buildstatus=2
+		    echo "setting buildstatus for $crown_or_numerals to 2"
+	    fi
+	fi
+    fi
+
+    if [ $buildstatus -eq 0 ]; then
+	echo "All is good. Doing nothing"
+    elif [ $buildstatus -eq 1 ]; then
+	echo "Building video"
+        eval "${buildvidcommand}"
+    elif [ $buildstatus -eq 2 ]; then
+	eval "${buildpngcommand}"
+        eval "${buildvidcommand}"
+    fi
+
+}
+
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
 ######### HERE SCRIPT STARTS! #######
@@ -545,96 +654,137 @@ done
 checkinputfiles
 getprogbarlength
 checkoffset
-
-
-
+##debug
+#if [ $compassellaikki = "y" ]; then
+#    echo "$(cat $compdir/check)" | sha256sum --check --status 
+#    if [ $? != 0 ]; then
+#	  echo 'Compass svg has changed!'
+#	  sleep 5
+#	  exit 1
+#    fi
+#fi
+#echo "Checksum valid"
+#sleep 5
+#exit 1
+##debug done
 if [ $compassellaikki = "y" ]; then
     echo "Using compass"
-    translate_log_data
-        if [ -d "$compdir" ]; then
-	    if [ $(ls $compdir/ | wc -l) -ge 360 ]; then
-		echo "Source png files for compass crown already present. Use or New (u/n)?"
-		read neworold
-		if [ $neworold = u ]; then
-		    echo "using old"
-		elif [ $neworold = n ]; then
-		    build360
-		else
-		    echo "Invalid response"
-		    echo "EXITING"
-		    sleep 3
-		    exit 1
-		fi
-	    else
-		build360
-	    fi
-	else
-	    mkdir $compdir
-	    build360
-	fi
+    ## checking compasscrown:
+    dialoguedir=$compdir
+    dialoguesvg=$comp
+    dialoguemov=$heading_video
+    buildvidcommand="translate_log_data; buildkumpvideo"
+    buildpngcommand="build360"
+    crown_or_numerals="compass crown"
+    compassdialogue
+    ## checking numerals
+    dialoguedir=$numdir
+    dialoguesvg=$numsvg
+    dialoguemov=$numvideo
+    buildvidcommand=" translate_log_data; buildnumvideo"
+    buildpngcommand="build360numerals"
+    crown_or_numerals="compass numerals"
+    compassdialogue
 
-    if [ -f "$heading_video" ]; then
-	echo "$heading_video already exists. Use er New? (u/n)"
-	read newold
-	if [ $newold = u ]; then
-	    echo "using old"
-	elif [ $newold = n ]; then
-	    buildkumpvideo
-	else
-	    echo "Invalid response"
-	    echo "EXITING"
-	    sleep 3
-	    exit 1
-	fi
-    else
-	buildkumpvideo
+    # dialoguedir
+    # dialoguesvg
+    # dialoguemov
+    # buildvidcommand
+    # buildpngcommand
+    # crown_or_numerals
+
+
+
+#    translate_log_data
+#        if [ -d "$compdir" ]; then
+#	    if [ $(ls $compdir/*.png | wc -l) = 360 ]; then
+#                echo "$(cat $compdir/check)" | sha256sum --check --status 
+#                if [ $? != 0 ]; then
+#            	    echo 'Compass svg has changed!'
+#		    echo "Build new compass pngs? y/n "this might take a while""
+#		    read buildpngs
+#		    if [ $buildpngs = "y" ]; then
+#			build360
+#	            fi
+#		fi
+#	    else
+#		echo "all compass pngs not present!"
+#		echo "building"
+#		sleep 1
+#		build360
+#	    fi
+#	else
+#	    echo "compass directory does not exist"
+#	    echo "building..."
+#	    sleep 1
+#	    mkdir $compdir
+#	    build360
+#	fi
+#
+#    if [ -f "$heading_video" ]; then
+#	echo "$heading_video already exists. Use er New? (u/n)"
+#	read newold
+#	if [ $newold = u ]; then
+#	    echo "using old"
+#	elif [ $newold = n ]; then
+#	    buildkumpvideo
+#	else
+#	    echo "Invalid response"
+#	    echo "EXITING"
+#	    sleep 3
+#	    exit 1
+#	fi
+#    else
+#	buildkumpvideo
+#    fi
+#    
+#
+#        if [ -d "$numdir" ]; then
+#	    if [ $(ls $numdir/ | wc -l) -ge 360 ]; then
+#		echo "Source numeral png files already exist. Use or New? (u/n)"
+#		read neworold
+#		if [ $neworold = u ]; then
+#		    echo "using old"
+#		elif [ $neworold = n ]; then
+#		    build360numerals
+#		else
+#		    echo "Invalid response"
+#		    echo "EXITING"
+#		    sleep 3
+#		    exit 1
+#		fi
+#	    else
+#		build360numerals
+#	    fi
+#	else
+#	    mkdir $numdir
+#	    build360numerals
+#	fi
+#
+#    if [ -f "$numvideo" ]; then
+#	echo "$numvideo already exists. Use or New? (u/n)"
+#	read newold
+#	if [ $newold = u ]; then
+#	    echo "using old"
+#	elif [ $newold = n ]; then
+#	    buildnumvideo
+#	else
+#	    echo "Invalid response"
+#	    echo "EXITING"
+#	    sleep 3
+#	    exit 1
+#	fi
+#    else
+#	buildnumvideo
+#    fi
+
+
+
+
+
+    if [ -f "$head" ]; then
+	rm $head
     fi
-    
-
-        if [ -d "$numdir" ]; then
-	    if [ $(ls $numdir/ | wc -l) -ge 360 ]; then
-		echo "Source numeral png files already exist. Use or New? (u/n)"
-		read neworold
-		if [ $neworold = u ]; then
-		    echo "using old"
-		elif [ $neworold = n ]; then
-		    build360numerals
-		else
-		    echo "Invalid response"
-		    echo "EXITING"
-		    sleep 3
-		    exit 1
-		fi
-	    else
-		build360numerals
-	    fi
-	else
-	    mkdir $numdir
-	    build360numerals
-	fi
-
-    if [ -f "$numvideo" ]; then
-	echo "$numvideo already exists. Use or New? (u/n)"
-	read newold
-	if [ $newold = u ]; then
-	    echo "using old"
-	elif [ $newold = n ]; then
-	    buildnumvideo
-	else
-	    echo "Invalid response"
-	    echo "EXITING"
-	    sleep 3
-	    exit 1
-	fi
-    else
-	buildnumvideo
-    fi
-
-
-
-
-
-
     files_existvidkump
     checkcurves
     checkcomp

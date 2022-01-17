@@ -30,10 +30,14 @@ for i in range(len(firstax)):
     timesdelta.append(timesdecimalfloats[i+1]-timesdecimalfloats[i])
     timesdelta[i]=str(timesdelta[i])
 
-    intermediate_angles.append(math.acos(secondax[i]/(sqrt(firstax[i]**2+secondax[i]**2)))*180/math.pi)
+    intermediate_angles.append(math.acos(secondax[i]/(sqrt(firstax[i]**2+secondax[i]**2)))*180/math.pi) #Where the magic happens
     headings_threesixty.append(abs(math.ceil(firstax[i])*360-round(intermediate_angles[i])))
+
     if headings_threesixty[i] == 360:
         headingslines.append('0000')
+
+    elif headings_threesixty[i] == 450:# edgcase where firstax is -1 exactly
+        headingslines.append('0090')
 
     elif headings_threesixty[i] == 0:
         headingslines.append('0000')
