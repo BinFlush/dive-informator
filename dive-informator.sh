@@ -499,13 +499,12 @@ function checkoffset {
 }
 
 function translate_log_data {
-    awk -F "\"*,\"*" '{print $8}' data.txt > x
-    awk -F "\"*,\"*" '{print $10}' data.txt > z
+    awk -F "\"*,\"*" '{print $3}' data.txt > angles 
     awk -F "\"*,\"*" '{print $1}' data.txt > time
     ./$py_data_translator
     framerate=$(cat framerate)
     echo "framerate calculated to be $framerate fps"
-    rm x z time framerate
+    rm angles time framerate
 }
 
 
