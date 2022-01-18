@@ -385,7 +385,7 @@ function buildkumpvideo {
     cd $compdir
     while true
     do
-        ffmpeg -y -f concat -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
         if [ $? = 0 ]; then
             echo "success!!!!"
 	    break
