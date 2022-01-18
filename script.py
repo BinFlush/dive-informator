@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 from math import sqrt
 import math
-import numpy as np
 import re
 from datetime import datetime
 import time
 with open('x') as f:
-    firstax = np.array(list(map(float, [l.strip() for l in f.readlines()])))
+    firstax = list(map(float, [l.strip() for l in f.readlines()]))
 with open('z') as f:
-    secondax = np.array(list(map(float, [l.strip() for l in f.readlines()])))
+    secondax = list(map(float, [l.strip() for l in f.readlines()]))
 with open('time') as f:
     times = list(map(str, [l.strip() for l in f.readlines()]))
 times.append(times[-1])
