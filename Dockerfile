@@ -1,5 +1,5 @@
 #Getting base image ubuntu
-FROM ubuntu
+FROM ubuntu:22.04
 
 MAINTAINER Símun Højgaard simunhojgaard@gmail.com fork of github.com/binflush/dive-informator with docker support
 
