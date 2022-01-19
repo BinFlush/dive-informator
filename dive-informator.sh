@@ -280,9 +280,10 @@ function countdown {
 
 
 function vidkump { 
-    ffmpeg -i "$vid" -i tmp.png -i "$heading_video" -i "$numvideo" -filter_complex \
+    ffmpeg -y -i "$vid" -i tmp.png -i "$heading_video" -i "$numvideo" -filter_complex \
 	"$filterstart\
-	[2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[ovr];\
+	[2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[koffs];\
+	[koffs]tmix[ovr];\
 	[3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
 	$filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
 	[sammen:v]subtitles="$sub"[sub:v];\
@@ -304,7 +305,7 @@ function vidkump {
 
 
 function uttankump {
-    ffmpeg -i "$vid" -i tmp.png -filter_complex \
+    ffmpeg -y -i "$vid" -i tmp.png -filter_complex \
 	"$filterstart\
 	$filterinput subtitles="$sub"[sub:v];\
 	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
@@ -385,7 +386,7 @@ function buildkumpvideo {
     cd $compdir
     while true
     do
-        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$heading_video" 
         if [ $? = 0 ]; then
             echo "success!!!!"
 	    break
@@ -405,7 +406,7 @@ function buildnumvideo {
     cd $numdir
     while true
     do
-        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
+        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$numvideo" 
         if [ $? = 0 ]; then
 	    echo "success!!!!"
 	    break
