@@ -10,14 +10,17 @@ N=4 #processes when multitasking
 numvideo=numerals.mov
 origdir=original-clips
 numsvg=numerals.svg
+tiltnum=tiltnum.svg
 numdir=360numerals
 comp=compass.svg ## Don't change this
+tiltcomp=tiltcomp.svg
 compdir=360
 sub=dykraw.ass
 png=profile.png
 vid=dykraw.mp4
 output_file=dyk.mp4
 head=headings
+headnum=headingsnum
 heading_video=prores.mov
 py_data_translator=script.py
 resize=20 		# size of png in percentage of original
@@ -344,6 +347,10 @@ function build360 {
         mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/${i}.png
         echo "$i"
     done
+    mogrify -format png -background Transparent -crop 330x330 $tiltcomp
+    mv tiltcomp.png $compdir/TILT.png
+    mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/TILT.png
+
     sha256sum $comp > $compdir/check
 }
 
@@ -374,7 +381,8 @@ function build360numerals {
         run_with_lock build360numeralscore
     done
     sha256sum $numsvg > $numdir/check
-
+    mogrify -format png -background Transparent tiltnum.svg
+    mv tiltnum.png $numdir/TILT.png
     sleep 5
 }
 
@@ -401,12 +409,12 @@ function buildkumpvideo {
 
 function buildnumvideo {
     echo "building numeral video "this might take a while""
-    cp $head $numdir/$head
+    cp $headnum $numdir/$headnum
     echo "cd-ing to $numdir"
     cd $numdir
     while true
     do
-        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$numvideo" 
+        ffmpeg -y -f concat -r $framerate -i $headnum -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$numvideo" 
         if [ $? = 0 ]; then
 	    echo "success!!!!"
 	    break
@@ -501,11 +509,12 @@ function checkoffset {
 
 function translate_log_data {
     awk -F "\"*,\"*" '{print $3}' data.txt > angles 
+    awk -F "\"*,\"*" '{print $2}' data.txt > pitch 
     awk -F "\"*,\"*" '{print $1}' data.txt > time
     ./$py_data_translator
     framerate=$(cat framerate)
     echo "framerate calculated to be $framerate fps"
-    rm angles time framerate
+    rm angles time framerate pitch
 }
 
 
@@ -533,7 +542,7 @@ function compassdialogue {
 		buildstatus=2
 		echo "setting buildstatus for $crown_or_numerals to 2"
 	    else
-	        if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+	        if [ $(ls $dialoguedir/*.png | wc -l) = 361 ]; then
                     echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                     if [ $? = 0 ]; then
 			buildstatus=1
@@ -562,7 +571,7 @@ function compassdialogue {
             buildstatus=2
 	    echo "setting buildstatus for $crown_or_numerals to 2"
 	else
-	    if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+	    if [ $(ls $dialoguedir/*.png | wc -l) = 361 ]; then
                 echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                 if [ $? = 0 ]; then
 		    buildstatus=1
