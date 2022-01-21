@@ -347,10 +347,6 @@ function build360 {
         mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/${i}.png
         echo "$i"
     done
-    mogrify -format png -background Transparent -crop 330x330 $tiltcomp
-    mv tiltcomp.png $compdir/TILT.png
-    mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/TILT.png
-
     sha256sum $comp > $compdir/check
 }
 
@@ -383,6 +379,7 @@ function build360numerals {
     sha256sum $numsvg > $numdir/check
     mogrify -format png -background Transparent tiltnum.svg
     mv tiltnum.png $numdir/TILT.png
+    echo "numeral-TILT"
     sleep 5
 }
 
@@ -542,7 +539,7 @@ function compassdialogue {
 		buildstatus=2
 		echo "setting buildstatus for $crown_or_numerals to 2"
 	    else
-	        if [ $(ls $dialoguedir/*.png | wc -l) = 361 ]; then
+	        if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                     echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                     if [ $? = 0 ]; then
 			buildstatus=1
@@ -571,7 +568,7 @@ function compassdialogue {
             buildstatus=2
 	    echo "setting buildstatus for $crown_or_numerals to 2"
 	else
-	    if [ $(ls $dialoguedir/*.png | wc -l) = 361 ]; then
+	    if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                 echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                 if [ $? = 0 ]; then
 		    buildstatus=1
