@@ -8,6 +8,10 @@
 
 N=4 #processes when multitasking
 numvideo=numerals.mov
+subsize=9
+submarginl=17
+submarginv=12
+subfont='Ubuntu Mono'
 origdir=original-clips
 numsvg=numerals.svg
 tiltnum=tiltnum.svg
@@ -49,7 +53,6 @@ do
 done
 sortedfiles=$(ls $origdir/ -cr --time=birth)
 echo "there are $origv original files"
-
 echo -n "ffmpeg -i \"concat:" >> tmpconcatskript
 
 for i in $sortedfiles; do  
@@ -289,7 +292,7 @@ function vidkump {
 	[koffs]tmix[ovr];\
 	[3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
 	$filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
-	[sammen:v]subtitles="$sub"[sub:v];\
+	[sammen:v]subtitles="$sub":force_style='Fontname=$subfont,Alignment=1,Fontsize=$subsize,MarginL=$submarginl,MarginV=$submarginv'[sub:v];\
 	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1[manglarnal]\
 	;color=c=white@0.5:s="$progw"x"112"[bartwo];\
@@ -310,7 +313,7 @@ function vidkump {
 function uttankump {
     ffmpeg -y -i "$vid" -i tmp.png -filter_complex \
 	"$filterstart\
-	$filterinput subtitles="$sub"[sub:v];\
+	$filterinput subtitles="$sub":force_style='Fontname=$subfont,Alignment=2,Fontsize=$subsize,MarginV=$submarginv'[sub:v];\
 	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1" \
 	-pix_fmt yuv420p -c:a copy "$output_file"
@@ -465,19 +468,19 @@ function checkinputfiles {
 
 
 function checkoffset {
-    sed -i '/^Style/s/[^,]*/8/3' $sub
-    echo "Setting subtitles size to 8"
-    if [ $compassellaikki = "y" ]; then
-        sed -i '/^Style/s/[^,]*/1/19' $sub
-	echo "Setting subtitle alignment to lower left"
-	echo
-	sleep 1
-    else
-        sed -i '/^Style/s/[^,]*/2/19' $sub
-	echo "Setting subtitle alignment to lower center"
-	echo
-	sleep 1
-    fi
+#    sed -i '/^Style/s/[^,]*/8/3' $sub
+#    echo "Setting subtitles size to 8"
+#    if [ $compassellaikki = "y" ]; then
+#        sed -i '/^Style/s/[^,]*/1/19' $sub
+#	echo "Setting subtitle alignment to lower left"
+#	echo
+#	sleep 1
+#    else
+#        sed -i '/^Style/s/[^,]*/2/19' $sub
+#	echo "Setting subtitle alignment to lower center"
+#	echo
+#	sleep 1
+#    fi
     offset=0
     while true
     do
