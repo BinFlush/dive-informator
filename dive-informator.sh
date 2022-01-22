@@ -8,10 +8,10 @@
 
 N=4 #processes when multitasking
 numvideo=numerals.mov
-subsize=9
+subsize=8
 submarginl=17
-submarginv=12
-subfont='Ubuntu Mono'
+submarginv=11
+subfont='FreeMono'
 origdir=original-clips
 numsvg=numerals.svg
 tiltnum=tiltnum.svg
