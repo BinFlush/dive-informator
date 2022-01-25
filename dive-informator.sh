@@ -508,13 +508,20 @@ function checkoffset {
 }
 
 function translate_log_data {
+    for i in $head angles time framerate pitch headingsnum
+    do
+	if [ -f "$i" ]; then
+	    rm $i
+	fi
+    done
+		    
     awk -F "\"*,\"*" '{print $3}' data.txt > angles 
     awk -F "\"*,\"*" '{print $2}' data.txt > pitch 
     awk -F "\"*,\"*" '{print $1}' data.txt > time
     ./$py_data_translator
     framerate=$(cat framerate)
     echo "framerate calculated to be $framerate fps"
-    rm angles time framerate pitch
+#    rm angles time framerate pitch
 }
 
 
@@ -605,6 +612,73 @@ function compassdialogue {
         eval "${buildvidcommand}"
     fi
 
+}
+
+
+function calibrator {
+    echo "CALIBRATING $calibfile"
+    counter=0
+    interm="$calibfile"interm
+    while IFS= read -r line; do
+        if [ $((counter%2)) -eq 0 ]; then
+            if [[ $line == *"TILT"* ]]; then
+		echo "$line" >> $interm # These are tiltlines
+            else
+		number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
+		number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
+		number=$(($number+$caliboffset)) # actual addition
+		if [ "$number" -ge 360 ]; then # Fixing out of range after addition
+		    number=$(($number - 360))
+		elif [ "$number" -lt 0 ]; then
+		    number=$(($number + 360))
+		fi
+		number=`printf %04d $number` #Add leading zeroes back
+                echo "file '$number.png'" >> $interm
+	    fi
+        else
+	    echo "$line" >> $interm #These are duration lines
+        fi
+        counter=$((counter+1))
+    done < $calibfile
+    mv $interm $calibfile
+}
+
+function calibdialogue {
+    echo "Now check if compass needs calibration."
+    sleep 1
+
+    while true
+    do
+      ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
+	  movie='$heading_video'[tmp1];\
+	  movie='$numvideo'[numerals];\
+	  [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
+	  [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
+	  [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
+	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
+      echo
+      echo "Does the compass need calibration?"
+      echo "* enter to proceed"
+      echo "* r to watch again"
+      echo "* q to quit"
+      echo "* enter 5 or -5 to move 5 degrees left or right.."
+      read ans
+    
+      if [ -z "$ans" ]; then
+        break
+      elif [ "$ans" = "q" ]; then
+        echo "exiting"
+        exit 0
+      else
+	  caliboffset=$(echo "$ans $caliboffset" | awk '{print $1+$2}')
+	  calibfile=$head
+	  calibrator
+	  buildkumpvideo
+	  calibfile=$headnum
+	  calibrator
+	  buildnumvideo
+      fi
+    done
 }
 
 ######### HERE SCRIPT STARTS! #######
@@ -791,12 +865,10 @@ if [ $compassellaikki = "y" ]; then
 
 
 
-    if [ -f "$head" ]; then
-	rm $head
-    fi
     files_existvidkump
     checkcurves
     checkcomp
+    calibdialogue
     convertpng
     countdown
     vidkump
