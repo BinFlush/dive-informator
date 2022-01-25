@@ -618,22 +618,37 @@ function compassdialogue {
 function calibrator {
     echo "CALIBRATING $calibfile"
     counter=0
+    correctionline=0
+    if [ $((correctionseconds)) -gt 0 ]; then
+	correctionlinefloat=$(echo "scale=8; (- $kumpoffset + $correctionseconds) * $framerate * 2" | bc)
+	correctionline=$(echo "scale=0;$correctionlinefloat / 1" | bc) #rounding to int
+	echo "correcting from line $correctionline"
+	sleep 1
+    else
+	echo "invalid correctionline!"
+	sleep 1
+    fi
     interm="$calibfile"interm
     while IFS= read -r line; do
         if [ $((counter%2)) -eq 0 ]; then
             if [[ $line == *"TILT"* ]]; then
 		echo "$line" >> $interm # These are tiltlines
             else
-		number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
-		number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
-		number=$(($number+$caliboffset)) # actual addition
-		if [ "$number" -ge 360 ]; then # Fixing out of range after addition
-		    number=$(($number - 360))
-		elif [ "$number" -lt 0 ]; then
-		    number=$(($number + 360))
+		if [ $((counter)) -ge $((correctionline)) ]; then
+
+		    number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
+		    number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
+		    number=$(($number+$caliboffset)) # actual addition
+		    if [ "$number" -ge 360 ]; then # Fixing out of range after addition
+		        number=$(($number - 360))
+		    elif [ "$number" -lt 0 ]; then
+		        number=$(($number + 360))
+		    fi
+		    number=`printf %04d $number` #Add leading zeroes back
+                    echo "file '$number.png'" >> $interm
+		else
+	            echo "$line" >> $interm # Lines are too early
 		fi
-		number=`printf %04d $number` #Add leading zeroes back
-                echo "file '$number.png'" >> $interm
 	    fi
         else
 	    echo "$line" >> $interm #These are duration lines
@@ -658,10 +673,12 @@ function calibdialogue {
 	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
       echo
       echo "Does the compass need calibration?"
+      echo "* y to calibrate"""
       echo "* enter to proceed"
       echo "* r to watch again"
       echo "* q to quit"
-      echo "* enter 5 or -5 to move 5 degrees left or right.."
+      echo "Compass time is offset by $kumpoffset seconds"
+#      echo "* enter 5 or -5 to move 5 degrees left or right.."
       read ans
     
       if [ -z "$ans" ]; then
@@ -669,7 +686,11 @@ function calibdialogue {
       elif [ "$ans" = "q" ]; then
         echo "exiting"
         exit 0
-      else
+      elif [ "$ans" = "y" ]; then
+	  echo "enter place of correction in seconds:"
+	  read correctionseconds
+	  echo "enter correction in degrees"
+	  read ans
 	  caliboffset=$(echo "$ans $caliboffset" | awk '{print $1+$2}')
 	  calibfile=$head
 	  calibrator
@@ -677,6 +698,8 @@ function calibdialogue {
 	  calibfile=$headnum
 	  calibrator
 	  buildnumvideo
+      else
+          sleep 2	  
       fi
     done
 }
