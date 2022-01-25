@@ -624,6 +624,8 @@ function calibrator {
 	correctionline=$(echo "scale=0;$correctionlinefloat / 1" | bc) #rounding to int
 	echo "correcting from line $correctionline"
 	sleep 1
+    elif [ $((correctionseconds)) == 0 ]; then
+	correctionline=0
     else
 	echo "invalid correctionline!"
 	sleep 1
