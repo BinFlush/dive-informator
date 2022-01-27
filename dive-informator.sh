@@ -8,16 +8,23 @@
 
 N=4 #processes when multitasking
 numvideo=numerals.mov
+subsize=8
+submarginl=17
+submarginv=11
+subfont='FreeMono'
 origdir=original-clips
 numsvg=numerals.svg
+tiltnum=tiltnum.svg
 numdir=360numerals
 comp=compass.svg ## Don't change this
+tiltcomp=tiltcomp.svg
 compdir=360
 sub=dykraw.ass
 png=profile.png
 vid=dykraw.mp4
 output_file=dyk.mp4
 head=headings
+headnum=headingsnum
 heading_video=prores.mov
 py_data_translator=script.py
 resize=20 		# size of png in percentage of original
@@ -46,7 +53,6 @@ do
 done
 sortedfiles=$(ls $origdir/ -cr --time=birth)
 echo "there are $origv original files"
-
 echo -n "ffmpeg -i \"concat:" >> tmpconcatskript
 
 for i in $sortedfiles; do  
@@ -280,12 +286,13 @@ function countdown {
 
 
 function vidkump { 
-    ffmpeg -i "$vid" -i tmp.png -i "$heading_video" -i "$numvideo" -filter_complex \
+    ffmpeg -y -i "$vid" -i tmp.png -i "$heading_video" -i "$numvideo" -filter_complex \
 	"$filterstart\
-	[2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[ovr];\
+	[2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[koffs];\
+	[koffs]tmix[ovr];\
 	[3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
 	$filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
-	[sammen:v]subtitles="$sub"[sub:v];\
+	[sammen:v]subtitles="$sub":force_style='Fontname=$subfont,Alignment=1,Fontsize=$subsize,MarginL=$submarginl,MarginV=$submarginv'[sub:v];\
 	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1[manglarnal]\
 	;color=c=white@0.5:s="$progw"x"112"[bartwo];\
@@ -304,9 +311,9 @@ function vidkump {
 
 
 function uttankump {
-    ffmpeg -i "$vid" -i tmp.png -filter_complex \
+    ffmpeg -y -i "$vid" -i tmp.png -filter_complex \
 	"$filterstart\
-	$filterinput subtitles="$sub"[sub:v];\
+	$filterinput subtitles="$sub":force_style='Fontname=$subfont,Alignment=2,Fontsize=$subsize,MarginV=$submarginv'[sub:v];\
 	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
 	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1" \
 	-pix_fmt yuv420p -c:a copy "$output_file"
@@ -373,7 +380,9 @@ function build360numerals {
         run_with_lock build360numeralscore
     done
     sha256sum $numsvg > $numdir/check
-
+    mogrify -format png -background Transparent tiltnum.svg
+    mv tiltnum.png $numdir/TILT.png
+    echo "numeral-TILT"
     sleep 5
 }
 
@@ -385,7 +394,7 @@ function buildkumpvideo {
     cd $compdir
     while true
     do
-        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$heading_video" 
+        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$heading_video" 
         if [ $? = 0 ]; then
             echo "success!!!!"
 	    break
@@ -400,12 +409,12 @@ function buildkumpvideo {
 
 function buildnumvideo {
     echo "building numeral video "this might take a while""
-    cp $head $numdir/$head
+    cp $headnum $numdir/$headnum
     echo "cd-ing to $numdir"
     cd $numdir
     while true
     do
-        ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le "$numvideo" 
+        ffmpeg -y -f concat -r $framerate -i $headnum -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$numvideo" 
         if [ $? = 0 ]; then
 	    echo "success!!!!"
 	    break
@@ -459,19 +468,19 @@ function checkinputfiles {
 
 
 function checkoffset {
-    sed -i '/^Style/s/[^,]*/8/3' $sub
-    echo "Setting subtitles size to 8"
-    if [ $compassellaikki = "y" ]; then
-        sed -i '/^Style/s/[^,]*/1/19' $sub
-	echo "Setting subtitle alignment to lower left"
-	echo
-	sleep 1
-    else
-        sed -i '/^Style/s/[^,]*/2/19' $sub
-	echo "Setting subtitle alignment to lower center"
-	echo
-	sleep 1
-    fi
+#    sed -i '/^Style/s/[^,]*/8/3' $sub
+#    echo "Setting subtitles size to 8"
+#    if [ $compassellaikki = "y" ]; then
+#        sed -i '/^Style/s/[^,]*/1/19' $sub
+#	echo "Setting subtitle alignment to lower left"
+#	echo
+#	sleep 1
+#    else
+#        sed -i '/^Style/s/[^,]*/2/19' $sub
+#	echo "Setting subtitle alignment to lower center"
+#	echo
+#	sleep 1
+#    fi
     offset=0
     while true
     do
@@ -499,13 +508,20 @@ function checkoffset {
 }
 
 function translate_log_data {
-    awk -F "\"*,\"*" '{print $8}' data.txt > x
-    awk -F "\"*,\"*" '{print $10}' data.txt > z
+    for i in $head angles time framerate pitch headingsnum
+    do
+	if [ -f "$i" ]; then
+	    rm $i
+	fi
+    done
+		    
+    awk -F "\"*,\"*" '{print $3}' data.txt > angles 
+    awk -F "\"*,\"*" '{print $2}' data.txt > pitch 
     awk -F "\"*,\"*" '{print $1}' data.txt > time
     ./$py_data_translator
     framerate=$(cat framerate)
     echo "framerate calculated to be $framerate fps"
-    rm x z time framerate
+#    rm angles time framerate pitch
 }
 
 
@@ -533,7 +549,7 @@ function compassdialogue {
 		buildstatus=2
 		echo "setting buildstatus for $crown_or_numerals to 2"
 	    else
-	        if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+	        if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                     echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                     if [ $? = 0 ]; then
 			buildstatus=1
@@ -562,7 +578,7 @@ function compassdialogue {
             buildstatus=2
 	    echo "setting buildstatus for $crown_or_numerals to 2"
 	else
-	    if [ $(ls $dialoguedir/*.png | wc -l) = 360 ]; then
+	    if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                 echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                 if [ $? = 0 ]; then
 		    buildstatus=1
@@ -596,6 +612,98 @@ function compassdialogue {
         eval "${buildvidcommand}"
     fi
 
+}
+
+
+function calibrator {
+    echo "CALIBRATING $calibfile"
+    counter=0
+    correctionline=0
+    if [ $((correctionseconds)) -gt 0 ]; then
+	correctionlinefloat=$(echo "scale=8; (- $kumpoffset + $correctionseconds) * $framerate * 2" | bc)
+	correctionline=$(echo "scale=0;$correctionlinefloat / 1" | bc) #rounding to int
+	echo "correcting from line $correctionline"
+	sleep 1
+    elif [ $((correctionseconds)) == 0 ]; then
+	correctionline=0
+    else
+	echo "invalid correctionline!"
+	sleep 1
+    fi
+    interm="$calibfile"interm
+    while IFS= read -r line; do
+        if [ $((counter%2)) -eq 0 ]; then
+            if [[ $line == *"TILT"* ]]; then
+		echo "$line" >> $interm # These are tiltlines
+            else
+		if [ $((counter)) -ge $((correctionline)) ]; then
+
+		    number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
+		    number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
+		    number=$(($number+$caliboffset)) # actual addition
+		    if [ "$number" -ge 360 ]; then # Fixing out of range after addition
+		        number=$(($number - 360))
+		    elif [ "$number" -lt 0 ]; then
+		        number=$(($number + 360))
+		    fi
+		    number=`printf %04d $number` #Add leading zeroes back
+                    echo "file '$number.png'" >> $interm
+		else
+	            echo "$line" >> $interm # Lines are too early
+		fi
+	    fi
+        else
+	    echo "$line" >> $interm #These are duration lines
+        fi
+        counter=$((counter+1))
+    done < $calibfile
+    mv $interm $calibfile
+}
+
+function calibdialogue {
+    echo "Now check if compass needs calibration."
+    sleep 1
+
+    while true
+    do
+      ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
+	  movie='$heading_video'[tmp1];\
+	  movie='$numvideo'[numerals];\
+	  [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
+	  [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
+	  [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
+	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
+      echo
+      echo "Does the compass need calibration?"
+      echo "* y to calibrate"""
+      echo "* enter to proceed"
+      echo "* r to watch again"
+      echo "* q to quit"
+      echo "Compass time is offset by $kumpoffset seconds"
+#      echo "* enter 5 or -5 to move 5 degrees left or right.."
+      read ans
+    
+      if [ -z "$ans" ]; then
+        break
+      elif [ "$ans" = "q" ]; then
+        echo "exiting"
+        exit 0
+      elif [ "$ans" = "y" ]; then
+	  echo "enter place of correction in seconds:"
+	  read correctionseconds
+	  echo "enter correction in degrees"
+	  read ans
+	  caliboffset=$(echo "$ans $caliboffset" | awk '{print $1+$2}')
+	  calibfile=$head
+	  calibrator
+	  buildkumpvideo
+	  calibfile=$headnum
+	  calibrator
+	  buildnumvideo
+      else
+          sleep 2	  
+      fi
+    done
 }
 
 ######### HERE SCRIPT STARTS! #######
@@ -782,12 +890,10 @@ if [ $compassellaikki = "y" ]; then
 
 
 
-    if [ -f "$head" ]; then
-	rm $head
-    fi
     files_existvidkump
     checkcurves
     checkcomp
+    calibdialogue
     convertpng
     countdown
     vidkump
