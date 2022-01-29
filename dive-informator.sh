@@ -48,7 +48,7 @@ do
     if [ $origv = 0 ]; then
         echo "No videos found"
     else
-	break
+    break
     fi
 done
 sortedfiles=$(ls $origdir/ -cr --time=birth)
@@ -56,8 +56,8 @@ echo "there are $origv original files"
 echo -n "ffmpeg -i \"concat:" >> tmpconcatskript
 
 for i in $sortedfiles; do  
-  ffmpeg -i "$origdir/$i" -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate"$i".ts
-  echo -n "intermediate$i.ts|" >> tmpconcatskript
+    ffmpeg -i "$origdir/$i" -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate"$i".ts
+    echo -n "intermediate$i.ts|" >> tmpconcatskript
 done
 sed -i 's/.$//' tmpconcatskript #delete trailing line
 echo -n "\" -c copy -bsf:a aac_adtstoasc $vid" >> tmpconcatskript
@@ -124,7 +124,7 @@ function files_existvidkump {
 function files_existuttankump {
     if [ ! -f "$vid" ]; then
         echo "$vid not found"
-       exit 1
+        exit 1
     fi
     if [ ! -f "$sub" ]; then
         echo "$sub not found"
@@ -149,7 +149,7 @@ function convertpng {
     profilheight=$(identify -format "%h" tmp.png)
     progbarstick=$(echo $profilheight | sed 's/.$//') #set overhang to roughly a thenth of height, by removing last digit
     if [ -z $progbarstick ]; then # set overlap to 0, in the weird case that the image heigth is single digits.
-       progbarstick=0
+        progbarstick=0
     fi       
     progw=2 #progressbar with
     progh=$(($progbarstick + $profilheight))
@@ -172,31 +172,31 @@ function checkcurves {
         while true
         do
           
-          ffplay -vf "$rgb" "$vid"
-          echo
-          echo "rgb is - $rgb"
-          echo "press enter to proceed if this is good, or make new value to test something else out"
-          echo "q to quit"
-          read "ans"
-        
-          if [ -z "$ans" ]; then
-            break
-            
-          elif [ "$ans" = "q" ]; then
-            echo "exiting"
-            exit 0
-        
-          else
-            rgb=$ans
-            echo "new rgb command is:"
-            echo "$rgb"
-          fi
+            ffplay -vf "$rgb" "$vid"
+            echo
+            echo "rgb is - $rgb"
+            echo "press enter to proceed if this is good, or make new value to test something else out"
+            echo "q to quit"
+            read "ans"
+             
+            if [ -z "$ans" ]; then
+                break
+                 
+            elif [ "$ans" = "q" ]; then
+                echo "exiting"
+                exit 0
+                 
+            else
+                rgb=$ans
+                echo "new rgb command is:"
+                echo "$rgb"
+            fi
         done
-	filterstart="[0:v]$rgb[rgbvid:v];"
-	filterinput="[rgbvid:v]"
+    filterstart="[0:v]$rgb[rgbvid:v];"
+    filterinput="[rgbvid:v]"
     elif [ "$colorcorrect" = "n" ]; then
-	filterstart=
-	filterinput="[0:v]"
+    filterstart=
+    filterinput="[0:v]"
     fi
 }
 
@@ -211,14 +211,14 @@ function getprogbarlength {
         echo "Press enter to accept, or write new value to manually change"
         read answer
         if [ -z $answer ]; then
-	    echo "Dive duration accepted!"
-	    sleep 2
-	    break
-	else
-	    echo
+        echo "Dive duration accepted!"
+        sleep 2
+        break
+    else
+        echo
             echo "New dive duration is $answer seconds (old was $progbarlength)"
             progbarlength=$answer
-	fi
+    fi
     done
 
 }
@@ -233,38 +233,34 @@ function offsetsubs {
 function checkcomp {
     echo "Check if compas is OK and aligned"
     sleep 4
-    
+     
     while true
     do
-      ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
-	  movie='$heading_video'[tmp1];\
-	  movie='$numvideo'[numerals];\
-	  [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
-	  [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
-	  [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
-	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
-      echo
-      echo "Does the compass look good?"
-      echo "* enter to proceed"
-      echo "* r to watch again"
-      echo "* q to quit"
-      echo "* enter 5 or -5 to move 5 seconds left or right. You can  enter up to three decimals."
-      read ans
-    
-      if [ -z "$ans" ]; then
-        break
-      elif [ "$ans" = "q" ]; then
-        echo "exiting"
-        exit 0
-      else
-	  kumpoffset=$(echo "$ans $kumpoffset" | awk '{print $1+$2}')
-      fi
+        ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
+        movie='$heading_video'[tmp1];\
+        movie='$numvideo'[numerals];\
+        [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
+        [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
+        [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
+        [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
+        echo
+        echo "Does the compass look good?"
+        echo "* enter to proceed"
+        echo "* r to watch again"
+        echo "* q to quit"
+        echo "* enter 5 or -5 to move 5 seconds left or right. You can  enter up to three decimals."
+        read ans
+         
+        if [ -z "$ans" ]; then
+            break
+        elif [ "$ans" = "q" ]; then
+            echo "exiting"
+            exit 0
+        else
+            kumpoffset=$(echo "$ans $kumpoffset" | awk '{print $1+$2}')
+        fi
     done
 }
-
-
-
-
 
 function countdown {
     echo "letsgooooooO"
@@ -287,36 +283,29 @@ function countdown {
 
 function vidkump { 
     ffmpeg -y -i "$vid" -i tmp.png -i "$heading_video" -i "$numvideo" -filter_complex \
-	"$filterstart\
-	[2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[koffs];\
-	[koffs]tmix[ovr];\
-	[3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
-	$filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
-	[sammen:v]subtitles="$sub":force_style='Fontname=$subfont,Alignment=1,Fontsize=$subsize,MarginL=$submarginl,MarginV=$submarginv'[sub:v];\
-	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
-	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1[manglarnal]\
-	;color=c=white@0.5:s="$progw"x"112"[bartwo];\
-	[manglarnal][bartwo]overlay=main_w/2-2:main_h-$progh+56:shortest=1[manglarnumerals];\
-	[manglarnumerals][numerals]overlay=W/2-w/2:H-h-34:shortest=1" \
-       	-pix_fmt yuv420p -c:a copy "$output_file"
+    "$filterstart\
+    [2:v]setpts=PTS-STARTPTS+$kumpoffset/TB[koffs];\
+    [koffs]tmix[ovr];\
+    [3:v]setpts=PTS-STARTPTS+$kumpoffset/TB[numerals];\
+    $filterinput[ovr]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[sammen:v];\
+    [sammen:v]subtitles="$sub":force_style='Fontname=$subfont,Alignment=1,Fontsize=$subsize,MarginL=$submarginl,MarginV=$submarginv'[sub:v];\
+    [sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
+    [0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1[manglarnal]\
+    ;color=c=white@0.5:s="$progw"x"112"[bartwo];\
+    [manglarnal][bartwo]overlay=main_w/2-2:main_h-$progh+56:shortest=1[manglarnumerals];\
+    [manglarnumerals][numerals]overlay=W/2-w/2:H-h-34:shortest=1" \
+    -pix_fmt yuv420p -c:a copy "$output_file"
 }
-
-
-#	filterstart="[0:v]$rgb[rgbvid:v];"
-#	filterinput="[rgbvid:v]"
-#    elif [ "$colorcorrect" = "n" ]; then
-#	filterstart=
-#	filterinput="[0:v]"
 
 
 
 function uttankump {
     ffmpeg -y -i "$vid" -i tmp.png -filter_complex \
-	"$filterstart\
-	$filterinput subtitles="$sub":force_style='Fontname=$subfont,Alignment=2,Fontsize=$subsize,MarginV=$submarginv'[sub:v];\
-	[sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
-	[0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1" \
-	-pix_fmt yuv420p -c:a copy "$output_file"
+    "$filterstart\
+    $filterinput subtitles="$sub":force_style='Fontname=$subfont,Alignment=2,Fontsize=$subsize,MarginV=$submarginv'[sub:v];\
+    [sub:v][1:v]overlay=W-w:H-h[0];color=c=red:s="$progw"x"$progh"[bar];\
+    [0][bar]overlay=$videowith-$profilwith+($profilwith/($progbarlength))*(t-$offset):H-h:enable='between(t,$offset,$barslut)':shortest=1" \
+    -pix_fmt yuv420p -c:a copy "$output_file"
 }
 
 
@@ -329,23 +318,23 @@ function build360 {
     echo "Building 360 Compassbase"
     if [ $(ls $compdir/ | wc -l) -gt 1 ]; then
         echo "stuff in folder. removing"
-	rm $compdir/*
+    rm $compdir/*
     else
-	echo "folder already empty"
+    echo "folder already empty"
     fi
     for i in {0000..0359}
     do
         mogrify -format png -background Transparent -rotate -$i -crop 330x330 compass.svg
         compfiles=$(find . -name "compass*.png" -printf '.' | wc -m)
-    
+         
         if [ $compfiles -gt 1 ]; then
             for j in $( eval echo {1..$(($compfiles-1))} )
             do
                 rm "compass-${j}.png"
             done
-    	    mv compass-0.png $compdir/${i}.png
+            mv compass-0.png $compdir/${i}.png
         else
-    	    mv compass.png $compdir/${i}.png
+            mv compass.png $compdir/${i}.png
         fi
         mogrify -format png -background Transparent -chop 1x150 -gravity south $compdir/${i}.png
         echo "$i"
@@ -354,13 +343,13 @@ function build360 {
 }
 
 function build360numeralscore {
-        cp numerals.svg $i.svg
-        sed -i "s/TEKSTUR/$i/g" $i.svg
-        mogrify -format png -background Transparent $i.svg
-        mv $i.png "$numdir/0$i.png"
-        rm $i.svg
-        echo "numeral-$i"
-    }
+    cp numerals.svg $i.svg
+    sed -i "s/TEKSTUR/$i/g" $i.svg
+    mogrify -format png -background Transparent $i.svg
+    mv $i.png "$numdir/0$i.png"
+    rm $i.svg
+    echo "numeral-$i"
+}
 
 function build360numerals {
     if [ ! -f "$numsvg" ]; then
@@ -370,9 +359,9 @@ function build360numerals {
     echo "Building 360 Compassbase"
     if [ $(ls $numdir/ | wc -l) -gt 1 ]; then
         echo "stuff in folder. removing"
-	rm $numdir/*
+    rm $numdir/*
     else
-	echo "folder already empty"
+    echo "folder already empty"
     fi
     open_sem $N
     for i in {000..359}
@@ -397,7 +386,7 @@ function buildkumpvideo {
         ffmpeg -y -f concat -r $framerate -i $head -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$heading_video" 
         if [ $? = 0 ]; then
             echo "success!!!!"
-	    break
+        break
         else
             echo "render failed.. trying again!!"
         fi
@@ -416,8 +405,8 @@ function buildnumvideo {
     do
         ffmpeg -y -f concat -r $framerate -i $headnum -c:v prores_ks -pix_fmt yuva444p10le -q:v 31 "$numvideo" 
         if [ $? = 0 ]; then
-	    echo "success!!!!"
-	    break
+        echo "success!!!!"
+        break
         else
             echo "render failed.. trying again!!"
         fi
@@ -457,9 +446,9 @@ function checkinputfiles {
 
         if [ $missing = 1 ]; then
             echo
-	    echo "Files missing!:"
-	    echo "$missingfiles"
-	    read -n 1 -s -r -p "Add files and press any key to continue!"
+        echo "Files missing!:"
+        echo "$missingfiles"
+        read -n 1 -s -r -p "Add files and press any key to continue!"
         else
             break
         fi
@@ -468,25 +457,12 @@ function checkinputfiles {
 
 
 function checkoffset {
-#    sed -i '/^Style/s/[^,]*/8/3' $sub
-#    echo "Setting subtitles size to 8"
-#    if [ $compassellaikki = "y" ]; then
-#        sed -i '/^Style/s/[^,]*/1/19' $sub
-#	echo "Setting subtitle alignment to lower left"
-#	echo
-#	sleep 1
-#    else
-#        sed -i '/^Style/s/[^,]*/2/19' $sub
-#	echo "Setting subtitle alignment to lower center"
-#	echo
-#	sleep 1
-#    fi
     offset=0
     while true
     do
         offsetsubs
-	echo
-	echo
+    echo
+    echo
         echo "Offset is currently $offset."
         echo "How many seconds should it be moved (when does dive start) valid input is 5 or -5"
         echo "press w to watch video (with subtitles)"
@@ -510,11 +486,11 @@ function checkoffset {
 function translate_log_data {
     for i in $head angles time framerate pitch headingsnum
     do
-	if [ -f "$i" ]; then
-	    rm $i
-	fi
+    if [ -f "$i" ]; then
+        rm $i
+    fi
     done
-		    
+     
     awk -F "\"*,\"*" '{print $3}' data.txt > angles 
     awk -F "\"*,\"*" '{print $2}' data.txt > pitch 
     awk -F "\"*,\"*" '{print $1}' data.txt > time
@@ -526,7 +502,7 @@ function translate_log_data {
 
 
 function compassdialogue {
-    # Remember to declare relevant variables before calling this function
+    # Remember to set relevant variables before calling this function
     # dialoguedir
     # dialoguesvg
     # dialoguemov
@@ -534,84 +510,81 @@ function compassdialogue {
     # buildpngcommand
     # crown_or_numerals
     if [ -f "$dialoguemov" ]; then
-	echo "$dialoguemov already exists."
-	echo "Use it? y/n"
-	read usemov
-	if [ $usemov = y ]; then
-	    buildstatus=0 ## DONE
-	    echo "setting buildstatus for $crown_or_numerals to 0"
-
-
-	    
+        echo "$dialoguemov already exists."
+        echo "Use it? y/n"
+        read usemov
+        if [ $usemov = y ]; then
+            buildstatus=0 ## DONE
+            echo "setting buildstatus for $crown_or_numerals to 0"
+             
         elif [ $usemov = n ];then
-	    if [ ! -d "$dialoguedir" ]; then
+            if [ ! -d "$dialoguedir" ]; then
                 mkdir $dialoguedir
-		buildstatus=2
-		echo "setting buildstatus for $crown_or_numerals to 2"
-	    else
-	        if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
+                buildstatus=2
+                echo "setting buildstatus for $crown_or_numerals to 2"
+            else
+                if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                     echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                     if [ $? = 0 ]; then
-			buildstatus=1
-			echo "setting buildstatus for $crown_or_numerals to 1"
-		    else
-			echo "$crown_or_numerals file has changed"
-			echo "Build new? y/n (might take a while)"
-			read newfiles
-			if [ $newfiles = y ]; then
-			    buildstatus=2
-			    echo "setting buildstatus for $crown_or_numerals to 2"
-			elif [ $newfiles = n ]; then
-			    buildstatus=1
-			    echo "setting buildstatus for $crown_or_numerals to 1"
-			fi
-		    fi
-		else
-		    buildstatus=2
-		    echo "setting buildstatus for $crown_or_numerals to 2"
-	        fi
-	    fi
-	fi
+                        buildstatus=1
+                        echo "setting buildstatus for $crown_or_numerals to 1"
+                    else
+                        echo "$crown_or_numerals file has changed"
+                        echo "Build new? y/n (might take a while)"
+                        read newfiles
+                        if [ $newfiles = y ]; then
+                            buildstatus=2
+                            echo "setting buildstatus for $crown_or_numerals to 2"
+                        elif [ $newfiles = n ]; then
+                            buildstatus=1
+                            echo "setting buildstatus for $crown_or_numerals to 1"
+                        fi
+                    fi
+                else
+                    buildstatus=2
+                    echo "setting buildstatus for $crown_or_numerals to 2"
+                fi
+            fi
+        fi
     else
         if [ ! -d "$dialoguedir" ]; then
             mkdir $dialoguedir
             buildstatus=2
-	    echo "setting buildstatus for $crown_or_numerals to 2"
-	else
-	    if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
+        echo "setting buildstatus for $crown_or_numerals to 2"
+        else
+            if [ $(ls $dialoguedir/*.png | wc -l) -ge 360 ]; then
                 echo "$(cat $dialoguedir/check)" | sha256sum --check --status 
                 if [ $? = 0 ]; then
-		    buildstatus=1
-		    echo "setting buildstatus for $crown_or_numerals to 1"
-		else
-		    echo "$crown_or_numerals file has changed"
-		    echo "Build new? y/n (might take a while)"
-		    read newfiles
-		    if [ $newfiles = y ]; then
-			echo "setting buildstatus for $crown_or_numerals to 2"
-		        buildstatus=2
-		    elif [ $newfiles = n ]; then
-		        buildstatus=1
-			echo "setting buildstatus for $crown_or_numerals to 1"
-		    fi
-		fi
-	    else
-		    buildstatus=2
-		    echo "setting buildstatus for $crown_or_numerals to 2"
-	    fi
-	fi
+                    buildstatus=1
+                    echo "setting buildstatus for $crown_or_numerals to 1"
+                else
+                    echo "$crown_or_numerals file has changed"
+                    echo "Build new? y/n (might take a while)"
+                    read newfiles
+                    if [ $newfiles = y ]; then
+                        echo "setting buildstatus for $crown_or_numerals to 2"
+                        buildstatus=2
+                    elif [ $newfiles = n ]; then
+                        buildstatus=1
+                        echo "setting buildstatus for $crown_or_numerals to 1"
+                    fi
+                fi
+            else
+                buildstatus=2
+                echo "setting buildstatus for $crown_or_numerals to 2"
+            fi
+        fi
     fi
 
     if [ $buildstatus -eq 0 ]; then
-	echo "All is good. Doing nothing"
+        echo "All is good. Doing nothing"
     elif [ $buildstatus -eq 1 ]; then
-	echo "Building video"
+        echo "Building video"
         eval "${buildvidcommand}"
     elif [ $buildstatus -eq 2 ]; then
-	eval "${buildpngcommand}"
+        eval "${buildpngcommand}"
         eval "${buildvidcommand}"
     fi
-
 }
 
 
@@ -620,40 +593,40 @@ function calibrator {
     counter=0
     correctionline=0
     if [ $((correctionseconds)) -gt 0 ]; then
-	correctionlinefloat=$(echo "scale=8; (- $kumpoffset + $correctionseconds) * $framerate * 2" | bc)
-	correctionline=$(echo "scale=0;$correctionlinefloat / 1" | bc) #rounding to int
-	echo "correcting from line $correctionline"
-	sleep 1
+    correctionlinefloat=$(echo "scale=8; (- $kumpoffset + $correctionseconds) * $framerate * 2" | bc)
+    correctionline=$(echo "scale=0;$correctionlinefloat / 1" | bc) #rounding to int
+    echo "correcting from line $correctionline"
+    sleep 1
     elif [ $((correctionseconds)) == 0 ]; then
-	correctionline=0
+    correctionline=0
     else
-	echo "invalid correctionline!"
-	sleep 1
+    echo "invalid correctionline!"
+    sleep 1
     fi
     interm="$calibfile"interm
     while IFS= read -r line; do
         if [ $((counter%2)) -eq 0 ]; then
             if [[ $line == *"TILT"* ]]; then
-		echo "$line" >> $interm # These are tiltlines
+        echo "$line" >> $interm # These are tiltlines
             else
-		if [ $((counter)) -ge $((correctionline)) ]; then
+        if [ $((counter)) -ge $((correctionline)) ]; then
 
-		    number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
-		    number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
-		    number=$(($number+$caliboffset)) # actual addition
-		    if [ "$number" -ge 360 ]; then # Fixing out of range after addition
-		        number=$(($number - 360))
-		    elif [ "$number" -lt 0 ]; then
-		        number=$(($number + 360))
-		    fi
-		    number=`printf %04d $number` #Add leading zeroes back
-                    echo "file '$number.png'" >> $interm
-		else
-	            echo "$line" >> $interm # Lines are too early
-		fi
-	    fi
+            number=$(printf '%s\n' "$line" | grep -o '[0-9]\+')
+            number=$(sed -r 's/0*([0-9]*)/\1/' <<< $number) #delete leading zeroes
+            number=$(($number+$caliboffset)) # actual addition
+            if [ "$number" -ge 360 ]; then # Fixing out of range after addition
+                number=$(($number - 360))
+            elif [ "$number" -lt 0 ]; then
+                number=$(($number + 360))
+            fi
+            number=`printf %04d $number` #Add leading zeroes back
+            echo "file '$number.png'" >> $interm
         else
-	    echo "$line" >> $interm #These are duration lines
+            echo "$line" >> $interm # Lines are too early
+        fi
+        fi
+        else
+            echo "$line" >> $interm #These are duration lines
         fi
         counter=$((counter+1))
     done < $calibfile
@@ -666,43 +639,43 @@ function calibdialogue {
 
     while true
     do
-      ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
-	  movie='$heading_video'[tmp1];\
-	  movie='$numvideo'[numerals];\
-	  [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
-	  [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
-	  [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
-	  [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
-      echo
-      echo "Does the compass need calibration?"
-      echo "* y to calibrate"""
-      echo "* enter to proceed"
-      echo "* r to watch again"
-      echo "* q to quit"
-      echo "Compass time is offset by $kumpoffset seconds"
-#      echo "* enter 5 or -5 to move 5 degrees left or right.."
-      read ans
-    
-      if [ -z "$ans" ]; then
-        break
-      elif [ "$ans" = "q" ]; then
-        echo "exiting"
-        exit 0
-      elif [ "$ans" = "y" ]; then
-	  echo "enter place of correction in seconds:"
-	  read correctionseconds
-	  echo "enter correction in degrees"
-	  read ans
-	  caliboffset=$(echo "$ans $caliboffset" | awk '{print $1+$2}')
-	  calibfile=$head
-	  calibrator
-	  buildkumpvideo
-	  calibfile=$headnum
-	  calibrator
-	  buildnumvideo
-      else
-          sleep 2	  
-      fi
+        ffplay -f lavfi "movie='$vid':f=dshow[tmp0];\
+        movie='$heading_video'[tmp1];\
+        movie='$numvideo'[numerals];\
+        [numerals]setpts=PTS-STARTPTS+$kumpoffset/TB[numoffset];\
+        [tmp1]setpts=PTS-STARTPTS+$kumpoffset/TB[tmp2];\
+        [tmp0][tmp2]overlay=main_w/2-overlay_w/2:main_h-overlay_h:shortest=1[manglarnumerals];\
+        [manglarnumerals][numoffset]overlay=W/2-w/2:H-h-34:shortest=1"
+        echo
+        echo "Does the compass need calibration?"
+        echo "* y to calibrate"""
+        echo "* enter to proceed"
+        echo "* r to watch again"
+        echo "* q to quit"
+        echo "Compass time is offset by $kumpoffset seconds"
+        #      echo "* enter 5 or -5 to move 5 degrees left or right.."
+        read ans
+         
+        if [ -z "$ans" ]; then
+            break
+        elif [ "$ans" = "q" ]; then
+            echo "exiting"
+            exit 0
+        elif [ "$ans" = "y" ]; then
+            echo "enter place of correction in seconds:"
+            read correctionseconds
+            echo "enter correction in degrees"
+            read ans
+            caliboffset=$(echo "$ans $caliboffset" | awk '{print $1+$2}')
+            calibfile=$head
+            calibrator
+            buildkumpvideo
+            calibfile=$headnum
+            calibrator
+            buildnumvideo
+        else
+            sleep 2	  
+        fi
     done
 }
 
@@ -719,15 +692,15 @@ if [ -f $vid ]; then
         read ans
         echo
         if [ $ans = y ]; then
-	    break
-	elif [ $ans = n ]; then
-	    echo "Generating new!"
-	    echo
-	    concatinator
-	    break
-	else
-	    echo "Invalid input!"
-	fi
+        break
+    elif [ $ans = n ]; then
+        echo "Generating new!"
+        echo
+        concatinator
+        break
+    else
+        echo "Invalid input!"
+    fi
     done
 else
     concatinator
@@ -749,32 +722,22 @@ while true
 do
     read compassellaikki
     if [ $compassellaikki != "y" ]; then
-	if [ $compassellaikki != "n" ]; then
-	    echo
-	    echo "Invalid input"
-	else
-	    break
-	fi
+    if [ $compassellaikki != "n" ]; then
+        echo
+        echo "Invalid input"
     else
-	break
+        break
+    fi
+    else
+    break
     fi
 done
 checkinputfiles
 getprogbarlength
 checkoffset
-##debug
-#if [ $compassellaikki = "y" ]; then
-#    echo "$(cat $compdir/check)" | sha256sum --check --status 
-#    if [ $? != 0 ]; then
-#	  echo 'Compass svg has changed!'
-#	  sleep 5
-#	  exit 1
-#    fi
-#fi
-#echo "Checksum valid"
-#sleep 5
-#exit 1
-##debug done
+
+
+
 if [ $compassellaikki = "y" ]; then
     echo "Using compass"
     ## checking compasscrown:
@@ -793,102 +756,6 @@ if [ $compassellaikki = "y" ]; then
     buildpngcommand="build360numerals"
     crown_or_numerals="compass numerals"
     compassdialogue
-
-    # dialoguedir
-    # dialoguesvg
-    # dialoguemov
-    # buildvidcommand
-    # buildpngcommand
-    # crown_or_numerals
-
-
-
-#    translate_log_data
-#        if [ -d "$compdir" ]; then
-#	    if [ $(ls $compdir/*.png | wc -l) = 360 ]; then
-#                echo "$(cat $compdir/check)" | sha256sum --check --status 
-#                if [ $? != 0 ]; then
-#            	    echo 'Compass svg has changed!'
-#		    echo "Build new compass pngs? y/n "this might take a while""
-#		    read buildpngs
-#		    if [ $buildpngs = "y" ]; then
-#			build360
-#	            fi
-#		fi
-#	    else
-#		echo "all compass pngs not present!"
-#		echo "building"
-#		sleep 1
-#		build360
-#	    fi
-#	else
-#	    echo "compass directory does not exist"
-#	    echo "building..."
-#	    sleep 1
-#	    mkdir $compdir
-#	    build360
-#	fi
-#
-#    if [ -f "$heading_video" ]; then
-#	echo "$heading_video already exists. Use er New? (u/n)"
-#	read newold
-#	if [ $newold = u ]; then
-#	    echo "using old"
-#	elif [ $newold = n ]; then
-#	    buildkumpvideo
-#	else
-#	    echo "Invalid response"
-#	    echo "EXITING"
-#	    sleep 3
-#	    exit 1
-#	fi
-#    else
-#	buildkumpvideo
-#    fi
-#    
-#
-#        if [ -d "$numdir" ]; then
-#	    if [ $(ls $numdir/ | wc -l) -ge 360 ]; then
-#		echo "Source numeral png files already exist. Use or New? (u/n)"
-#		read neworold
-#		if [ $neworold = u ]; then
-#		    echo "using old"
-#		elif [ $neworold = n ]; then
-#		    build360numerals
-#		else
-#		    echo "Invalid response"
-#		    echo "EXITING"
-#		    sleep 3
-#		    exit 1
-#		fi
-#	    else
-#		build360numerals
-#	    fi
-#	else
-#	    mkdir $numdir
-#	    build360numerals
-#	fi
-#
-#    if [ -f "$numvideo" ]; then
-#	echo "$numvideo already exists. Use or New? (u/n)"
-#	read newold
-#	if [ $newold = u ]; then
-#	    echo "using old"
-#	elif [ $newold = n ]; then
-#	    buildnumvideo
-#	else
-#	    echo "Invalid response"
-#	    echo "EXITING"
-#	    sleep 3
-#	    exit 1
-#	fi
-#    else
-#	buildnumvideo
-#    fi
-
-
-
-
 
     files_existvidkump
     checkcurves
