@@ -41,8 +41,12 @@ for i in range(len(angles)):
     headings_threesixty.append(round(wronganglesindegrees[i]+(oneifnegative[i]*360)))
 
     if angles[i] == 0.00000 and abs(pitch[i]) > 1.252:
-        headingslines.append(headingslines[i-1]) # Stop rotation when compass tilts
-        headingslinesnum.append('TILT') # Stop rotation when compass tilts
+        if i == 0:
+            headingslines.append('0000')
+            headingslinesnum.append('TILT') # Stop rotation when compass tilts
+        else:
+            headingslines.append(headingslines[i-1]) # Stop rotation when compass tilts
+            headingslinesnum.append('TILT') # Stop rotation when compass tilts
     else:
 
         if headings_threesixty[i] == 360:
